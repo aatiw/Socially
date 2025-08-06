@@ -1,44 +1,40 @@
-// @ts-nocheck
-
-
-import { getUserByUsername, getUserLikedPosts, getUserPosts, isFollowing } from "@/actions/profile.action";
+import {
+  getUserByUsername,
+  getUserLikedPosts,
+  getUserPosts,
+  isFollowing,
+} from "@/actions/profile.action";
 import { notFound } from "next/navigation";
 import ProfilePageClient from "./ProfilePageClient";
 
-interface PageProps {
-  params: {
-    username: string;
+export async function generateMetadata({ params }: { params: { username: string } }) {
+  const user = await getUserByUsername(params.username);
+  if (!user) return;
+
+  return {
+    title: `${user.name ?? user.username}`,
+    description: user.bio || `Check out ${user.username}'s profile.`,
   };
-};
-
-
-export async function generateMetadata({params}: PageProps){
-    const user = await getUserByUsername(params.username);
-    if (!user) return;
-
-    return {
-        title: `${user.name ?? user.username}`,
-        description: user.bio || `check out ${user.username}'s profile`
-    }
 }
 
-async function ProfilePage({params}: PageProps) {
-    const user = await getUserByUsername(params.username);
-    if (!user) notFound();
+async function ProfilePageServer({ params }: { params: { username: string } }) {
+  const user = await getUserByUsername(params.username);
 
-    const [posts, likedPosts, isCurrentUserFollowing] = await Promise.all([
-        getUserPosts(user.id),
-        getUserLikedPosts(user.id),
-        isFollowing(user.id)
-    ])
-    console.log("paramas:", params);
+  if (!user) notFound();
 
-    return <ProfilePageClient
-    user={user}
-    posts={posts}
-    likedPosts={likedPosts}
-    isFollowing={isCurrentUserFollowing}
+  const [posts, likedPosts, isCurrentUserFollowing] = await Promise.all([
+    getUserPosts(user.id),
+    getUserLikedPosts(user.id),
+    isFollowing(user.id),
+  ]);
+
+  return (
+    <ProfilePageClient
+      user={user}
+      posts={posts}
+      likedPosts={likedPosts}
+      isFollowing={isCurrentUserFollowing}
     />
+  );
 }
-
-export default ProfilePage;
+export default ProfilePageServer;
